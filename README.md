@@ -1,6 +1,6 @@
 # Layoff Data Analisys 
 
-Este projeto apresenta um processo de limpeza e padronização de dados de layoffs usando SQL. O foco do trabalho é transformar uma tabela bruta (`layoff_staging`) em uma base mais confiável para análise, removendo duplicatas, tratando valores nulos e vazios, padronizando textos e ajustando tipos de dados.
+Este projeto apresenta um processo de limpeza e padronização de dados de layoffs usando SQL. O foco do trabalho é transformar uma tabela bruta (`layoff`) em uma base mais confiável para análise, removendo duplicatas, tratando valores nulos e vazios, padronizando textos e ajustando tipos de dados.
 O objetivo é preparar os dados para análises posteriores, garantindo maior consistência e qualidade. O script cria um ambiente de trabalho separado, copia os dados da tabela staging e aplica sucessivas etapas de limpeza.
 
 
