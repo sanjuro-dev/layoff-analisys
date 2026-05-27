@@ -34,7 +34,6 @@ WHERE row_num > 1;
 
 A base apresenta campos textuais com espaços extras, grafias inconsistentes e datas armazenadas como texto. Essas falhas comprometem a análise e por isso precisam ser corrigidas.
 
-Exemplos:
 
 ```sql
 UPDATE layoff_staging2 SET company = TRIM(company);
