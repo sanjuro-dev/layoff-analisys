@@ -19,7 +19,7 @@ As duplicatas são identificadas com `ROW_NUMBER()`, particionando pelos campos:
 
 Depois disso, os registros repetidos são removidos da tabela auxiliar.
 
-### 3. Padronização de dados
+### Padronização de dados
 Foram aplicadas padronizações como:
 - Remoção de espaços extras em `company` com `TRIM()`.
 - Padronização de valores de `industry`, como variações de `Cripto%` para `Crypto Currency`.
