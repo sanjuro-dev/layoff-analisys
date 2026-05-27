@@ -1,49 +1,171 @@
-# Layoff Data Analisys 
+# Projeto de Análise de Layoffs com SQL
 
-Este projeto apresenta um processo de limpeza e padronização de dados de layoffs usando SQL. O foco do trabalho é transformar uma tabela bruta (`layoff`) em uma base mais confiável para análise, removendo duplicatas, tratando valores nulos e vazios, padronizando textos e ajustando tipos de dados.
-O objetivo é preparar os dados para análises posteriores, garantindo maior consistência e qualidade. O script cria um ambiente de trabalho separado, copia os dados da tabela staging e aplica sucessivas etapas de limpeza.
+Este projeto realiza a limpeza, padronização e análise exploratória de uma base de layoffs utilizando SQL em MySQL. O fluxo cobre etapas clássicas de um projeto de análise de dados.
 
+## Ciclo de análise de dados
 
+### Criação do ambiente de trabalho
 
-### Criação da base de trabalho
-O script cria o schema `layoff` e usa uma cópia da tabela `layoff_staging` para preservar a base original.
+O schema e a tabela staging são criados para separar a camada bruta da camada de transformação.
+
+```sql
+CREATE SCHEMA layoff;
+CREATE TABLE layoff_staging LIKE layoffs.layoff;
+INSERT layoff_staging SELECT * FROM layoffs.layoff;
+```
 
 ### Remoção de duplicatas
-As duplicatas são identificadas com `ROW_NUMBER()`, particionando pelos campos:
-- `company`
-- `location`
-- `industry`
-- `date`
-- `stage`
-- `country`
 
-Depois disso, os registros repetidos são removidos da tabela auxiliar.
+A remoção de duplicatas é feita com função de janela. Esse é um recurso importante em análise de dados porque evita contagens infladas e melhora a confiabilidade das agregações.
 
-### Padronização de dados
-Foram aplicadas padronizações como:
-- Remoção de espaços extras em `company` com `TRIM()`.
-- Padronização de valores de `industry`, como variações de `Cripto%` para `Crypto Currency`.
-- Padronização de `country`, como valores iniciados em `United S%` para `United States`.
+```sql
+INSERT layoff_staging2
+SELECT *,
+       ROW_NUMBER() OVER (
+           PARTITION BY company, location, industry, `date`, stage, country
+       ) AS row_num
+FROM layoff_staging;
 
-A coluna `date`, originalmente em texto, é convertida com `STR_TO_DATE(..., '%m/%d/%Y')` e depois alterada para o tipo `DATE`.
+DELETE FROM layoff_staging2
+WHERE row_num > 1;
+```
 
-### Tratamento de nulos e vazios
-O script converte para `NULL` real os valores que estavam como:
-- `'NULL'`
-- `''` (string vazia)
-- `Unknown` em alguns casos, como na coluna `stage`
+### Padronização e tipagem
 
-Esse tratamento foi aplicado em colunas como:
-- `industry`
-- `total_laid_off`
-- `percentage_laid_off`
-- `date`
-- `stage`
-- `funds_raised_millions`
+A base apresenta campos textuais com espaços extras, grafias inconsistentes e datas armazenadas como texto. Essas falhas comprometem a análise e por isso precisam ser corrigidas.
 
+Exemplos:
 
-Quando `industry` estava nulo, o script buscou outro registro com a mesma `company` e `location` para preencher esse valor automaticamente.
+```sql
+UPDATE layoff_staging2 SET company = TRIM(company);
+UPDATE layoff_staging2 SET industry = 'Crypto Currency' WHERE industry LIKE 'Crypto%';
+UPDATE layoff_staging2 SET country = 'United States' WHERE country LIKE 'United S%';
+UPDATE layoff_staging2 SET `date` = STR_TO_DATE(NULLIF(`date`, 'NULL'), '%m/%d/%Y');
+ALTER TABLE layoff_staging2 MODIFY COLUMN `date` DATE;
+```
 
+### Tratamento de valores nulos
 
-Registros com `total_laid_off` e `percentage_laid_off` ambos nulos foram removidos, pois não agregavam valor para análise.
-Ao final do processo, a coluna auxiliar `row_num` é removida da tabela final.
+Valores nulos e vazios impactam filtros, agrupamentos e métricas. O projeto trata esses casos de forma explícita para reduzir distorções.
+
+Exemplos de tratamento:
+
+- Conversão de `'NULL'` e strings vazias para `NULL` real.
+- Substituição de `stage = 'Unknown'` por `NULL`.
+- Exclusão de registros sem `total_laid_off` e sem `percentage_laid_off`.
+- Atualização de `industry` com base em registros equivalentes da mesma empresa e local.
+
+## Consultas analíticas desenvolvidas
+
+### Período da análise
+
+```sql
+SELECT MIN(`date`) AS start, MAX(`date`) AS end
+FROM layoff_staging2;
+```
+
+Permite entender o intervalo temporal coberto pelos dados.
+
+### Máximos absolutos e relativos
+
+```sql
+SELECT MAX(total_laid_off) AS absolute,
+       MAX(percentage_laid_off) AS relative
+FROM layoff_staging2;
+```
+
+Ajuda a identificar eventos extremos de demissão.
+
+### Layoffs por empresa
+
+```sql
+SELECT company, SUM(total_laid_off) AS total
+FROM layoff_staging2
+GROUP BY company
+ORDER BY 2 DESC;
+```
+
+Essa análise mostra quais empresas concentraram mais desligamentos no período.
+
+### Layoffs por setor
+
+```sql
+SELECT industry, SUM(total_laid_off) AS total
+FROM layoff_staging2
+GROUP BY industry
+ORDER BY 2 DESC;
+```
+
+Útil para identificar segmentos mais impactados economicamente.
+
+### Layoffs por país
+
+```sql
+SELECT country, SUM(total_laid_off) AS total
+FROM layoff_staging2
+GROUP BY country
+ORDER BY 2 DESC;
+```
+
+Essa consulta revela a distribuição geográfica das demissões.
+
+### Layoffs por ano
+
+```sql
+SELECT YEAR(`date`), SUM(total_laid_off) AS total
+FROM layoff_staging2
+GROUP BY YEAR(`date`)
+ORDER BY 2 DESC;
+```
+
+Permite comparar anos com maior intensidade de layoffs.
+
+### Layoffs por mês
+
+```sql
+SELECT SUBSTRING(`date`, 6, 2) AS month,
+       YEAR(`date`) AS year,
+       SUM(total_laid_off) AS total
+FROM layoff_staging2
+WHERE SUBSTRING(`date`, 6, 2) IS NOT NULL
+  AND YEAR(`date`) IS NOT NULL
+GROUP BY month, year
+ORDER BY year, month;
+```
+
+Essa consulta ajuda na análise de sazonalidade e comportamento temporal.
+
+### Total acumulado
+
+```sql
+WITH rolling_total AS (
+    SELECT SUBSTRING(`date`, 6, 2) AS month,
+           YEAR(`date`) AS year,
+           SUM(total_laid_off) AS total
+    FROM layoff_staging2
+    WHERE SUBSTRING(`date`, 6, 2) IS NOT NULL
+      AND YEAR(`date`) IS NOT NULL
+    GROUP BY month, year
+)
+SELECT month,
+       total,
+       SUM(total) OVER (ORDER BY month, year) AS rolling_total
+FROM rolling_total;
+```
+
+### Ranking por empresa e ano
+
+```sql
+WITH company_year (company, years, total_laid_off) AS (
+    SELECT company,
+           YEAR(`date`) AS year,
+           SUM(total_laid_off) AS total
+    FROM layoff_staging2
+    GROUP BY company, YEAR(`date`)
+    HAVING total IS NOT NULL AND year IS NOT NULL
+)
+SELECT *,
+       DENSE_RANK() OVER (PARTITION BY years ORDER BY total_laid_off DESC) AS ranking
+FROM company_year
+ORDER BY ranking;
+```
