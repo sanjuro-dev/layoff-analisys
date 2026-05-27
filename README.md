@@ -1,4 +1,4 @@
-# Projeto de Análise de Layoffs com SQL
+# Análise de Layoffs
 
 Este projeto realiza a limpeza, padronização e análise exploratória de uma base de layoffs utilizando SQL em MySQL. O fluxo cobre etapas clássicas de um projeto de análise de dados.
 
