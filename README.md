@@ -25,7 +25,6 @@ Foram aplicadas padronizações como:
 - Padronização de valores de `industry`, como variações de `Cripto%` para `Crypto Currency`.
 - Padronização de `country`, como valores iniciados em `United S%` para `United States`.
 
-### Conversão de datas
 A coluna `date`, originalmente em texto, é convertida com `STR_TO_DATE(..., '%m/%d/%Y')` e depois alterada para o tipo `DATE`.
 
 ### Tratamento de nulos e vazios
@@ -42,11 +41,9 @@ Esse tratamento foi aplicado em colunas como:
 - `stage`
 - `funds_raised_millions`
 
-### Preenchimento de valores ausentes
+
 Quando `industry` estava nulo, o script buscou outro registro com a mesma `company` e `location` para preencher esse valor automaticamente.
 
-### Remoção de linhas irrelevantes
-Registros com `total_laid_off` e `percentage_laid_off` ambos nulos foram removidos, pois não agregavam valor para análise.
 
-### Ajuste final
+Registros com `total_laid_off` e `percentage_laid_off` ambos nulos foram removidos, pois não agregavam valor para análise.
 Ao final do processo, a coluna auxiliar `row_num` é removida da tabela final.
