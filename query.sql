@@ -50,7 +50,7 @@ update layoff_staging2 set company = trim(company);
 select distinct * from layoff_staging2;
 
 select distinct industry from layoff_staging2;
-update layoff_staging2 set industry = 'Crypto Currency' where industry like 'Cripto%';
+update layoff_staging2 set industry = 'Crypto Currency' where industry like 'Crypto%';
 select distinct industry from layoff_staging2;
 
 select distinct country from layoff_staging2 order by 1;
