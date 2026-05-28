@@ -1,18 +1,4 @@
--- MAIORES LAYOFFS POR EMPRESA E ANO
 
-select company, year(`date`) as year, sum(total_laid_off) as total
-from layoff_staging2 group by company,year( `date`)
-having total is not null order by total;
-
-
-
-WITH company_year (company, years, total_laid_off) as
-(
-    select company, year(`date`) as year, sum(total_laid_off) as total
-    from layoff_staging2 group by company,year( `date`)
-    having total is not null and year is not null
-    ) select *, dense_rank() over (partition by years order by total_laid_off desc) as ranking
-    from company_year order by ranking;
 
 
 
